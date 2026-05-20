@@ -2,10 +2,10 @@
  * Custom hook for polling analysis status with configurable intervals and timeouts
  */
 
-import { useEffect, useRef, useState } from 'react'
-import { getAnalysisStatus } from '@/lib/api'
-import { POLLING_CONFIG } from '@/config/polling'
-import type { AnalysisStatus } from '@/types/api'
+import { useEffect, useRef, useState } from "react"
+import type { AnalysisStatus } from "@/types/api"
+import { getAnalysisReport } from "@/lib/api"
+import { POLLING_CONFIG } from "@/config/polling"
 
 export interface UsePollingResult {
   isPolling: boolean
@@ -61,7 +61,7 @@ export function usePolling(
     if (!analysisId) return
 
     try {
-      const status = await getAnalysisStatus(analysisId)
+      const status = await getAnalysisReport(analysisId)
       retriesRef.current += 1
 
       setCurrentStatus(status)
@@ -70,7 +70,7 @@ export function usePolling(
       onStatusUpdate?.(status)
 
       // Stop polling if analysis is complete or failed
-      if (status.status === 'complete' || status.status === 'failed') {
+      if (status.status === "analyzed" || status.status === "error") {
         stopPolling()
         onComplete?.(status)
       }
@@ -87,7 +87,7 @@ export function usePolling(
       }
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : 'Failed to fetch status'
+        err instanceof Error ? err.message : "Failed to fetch status"
       setError(errorMessage)
       onError?.(errorMessage)
       // Continue polling on error - the network might be temporarily unavailable

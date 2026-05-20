@@ -1,10 +1,10 @@
-'use client'
+"use client"
 
-import { createFileRoute } from '@tanstack/react-router'
-import { useQuery } from '@tanstack/react-query'
-import { toast } from 'sonner'
-import { getAllAnalyses, downloadReport, triggerBlobDownload } from '@/lib/api'
-import type { Analysis } from '@/types/api'
+import { createFileRoute } from "@tanstack/react-router"
+import { toast } from "sonner"
+import { Download, RotateCw } from "lucide-react"
+import type { AnalysisStatusType } from "@/types/api"
+import { triggerBlobDownload } from "@/lib/api"
 import {
   Table,
   TableBody,
@@ -12,185 +12,121 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Download, Loader2, RotateCw } from 'lucide-react'
+} from "@/components/ui/table"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { UploadModal } from "@/components/upload-modal"
 
-export const Route = createFileRoute('/dashboard')({
+export const Route = createFileRoute("/dashboard")({
   component: Component,
 })
 
 export function Component() {
-  const {
-    data: analysesList,
-    isLoading,
-    isError,
-    error,
-    refetch,
-  } = useQuery({
-    queryKey: ['analyses'],
-    queryFn: () => getAllAnalyses(),
-    refetchInterval: 10000, // Refetch every 10 seconds for real-time updates
-  })
-
-  const analyses = analysesList?.analyses ?? []
-
-  const handleDownload = async (analysis: Analysis) => {
-    if (!analysis.reportUrl) {
-      toast.error('Report URL not available')
-      return
-    }
-
-    try {
-      const blob = await downloadReport(analysis.id)
-      const fileName = `${analysis.fileName.split('.')[0]}-report.pdf`
-      triggerBlobDownload(blob, fileName)
-      toast.success('Report downloaded successfully')
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : 'Failed to download report'
-      toast.error(message)
-    }
-  }
+  // Note: Backend doesn't provide a list all analyses endpoint yet
+  // For now, use the upload modal and polling for individual analyses
 
   const getStatusVariant = (
-    status: Analysis['status']
-  ): 'default' | 'pending' | 'processing' | 'success' | 'destructive' => {
+    status: AnalysisStatusType
+  ): "default" | "secondary" | "destructive" => {
     switch (status) {
-      case 'complete':
-        return 'success'
-      case 'failed':
-        return 'destructive'
-      case 'processing':
-        return 'processing'
-      case 'pending':
-        return 'pending'
+      case "analyzed":
+        return "default"
+      case "error":
+        return "destructive"
+      case "processing":
+      case "received":
       default:
-        return 'default'
+        return "secondary"
     }
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
+  const getStatusLabel = (status: AnalysisStatusType): string => {
+    switch (status) {
+      case "received":
+        return "Received"
+      case "processing":
+        return "Processing"
+      case "analyzed":
+        return "Analyzed"
+      case "error":
+        return "Error"
+      default:
+        return status
+    }
   }
 
   return (
     <div className="min-h-screen bg-background">
       <div className="border-b border-border">
-        <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">
-                Analysis Dashboard
-              </h1>
-              <p className="mt-2 text-sm text-muted-foreground">
-                View all your architectural diagram analyses
-              </p>
-            </div>
-            <Button onClick={() => refetch()} disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Loading...
-                </>
-              ) : (
-                <>
-                  <RotateCw className="mr-2 h-4 w-4" />
-                  Refresh
-                </>
-              )}
-            </Button>
+        <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">
+              Architecture Diagram Analysis
+            </h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Upload your architectural diagram for AI-powered analysis
+            </p>
           </div>
         </div>
       </div>
 
-      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-        {isError && (
-          <div className="mb-6 rounded-lg bg-destructive/10 p-4 text-sm text-destructive">
-            {error instanceof Error
-              ? error.message
-              : 'Failed to load analyses'}
-          </div>
-        )}
+      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="rounded-lg border border-border bg-card p-8">
+          <UploadModal />
+        </div>
 
-        {analyses.length === 0 && !isLoading ? (
-          <div className="rounded-lg border border-dashed border-border bg-muted/30 py-12 text-center">
-            <p className="text-sm text-muted-foreground">
-              No analyses yet. Go to the home page to submit your first diagram.
-            </p>
+        <div className="mt-12 space-y-6">
+          <div>
+            <h2 className="text-lg font-semibold">How it works</h2>
+            <ol className="mt-4 space-y-3 text-sm text-muted-foreground">
+              <li className="flex gap-3">
+                <span className="font-semibold text-foreground">1.</span>
+                <span>Upload a diagram image (PNG, JPEG, or PDF)</span>
+              </li>
+              <li className="flex gap-3">
+                <span className="font-semibold text-foreground">2.</span>
+                <span>The AI analyzes the diagram and extracts components</span>
+              </li>
+              <li className="flex gap-3">
+                <span className="font-semibold text-foreground">3.</span>
+                <span>
+                  View the analysis results with identified risks and
+                  recommendations
+                </span>
+              </li>
+            </ol>
           </div>
-        ) : (
-          <div className="space-y-4">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>File Name</TableHead>
-                  <TableHead>Upload Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={4} className="py-8 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Loading analyses...
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  analyses.map((analysis) => (
-                    <TableRow key={analysis.id}>
-                      <TableCell className="font-medium">
-                        {analysis.fileName}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {formatDate(analysis.uploadDate)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={getStatusVariant(analysis.status)}>
-                          {analysis.status.charAt(0).toUpperCase() +
-                            analysis.status.slice(1)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          {analysis.status === 'complete' &&
-                          analysis.reportUrl ? (
-                            <Button
-                              size="sm"
-                              onClick={() => handleDownload(analysis)}
-                            >
-                              <Download className="mr-2 h-4 w-4" />
-                              Download Report
-                            </Button>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              disabled
-                            >
-                              Not Ready
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+
+          <div>
+            <h3 className="text-sm font-semibold">Status meanings</h3>
+            <div className="mt-3 space-y-2 text-sm">
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary">Received</Badge>
+                <span className="text-muted-foreground">
+                  File uploaded and queued for processing
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary">Processing</Badge>
+                <span className="text-muted-foreground">
+                  AI is analyzing the diagram
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge>Analyzed</Badge>
+                <span className="text-muted-foreground">
+                  Analysis complete, results ready
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="destructive">Error</Badge>
+                <span className="text-muted-foreground">
+                  An error occurred during processing
+                </span>
+              </div>
+            </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
   )

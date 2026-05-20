@@ -2,23 +2,20 @@
  * API client for communicating with the backend analysis service
  */
 
-import type {
-  AnalysisStatus,
-  UploadFileResponse,
-  AnalysesList,
-} from '@/types/api'
+import type { AnalysisStatus, UploadFileResponse } from "@/types/api"
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api'
+const GATEWAY_URL =
+  import.meta.env.VITE_API_GATEWAY_URL || "http://localhost:8080"
 
 /**
  * Upload a file for architectural diagram analysis
  */
 export async function uploadFile(file: File): Promise<UploadFileResponse> {
   const formData = new FormData()
-  formData.append('file', file)
+  formData.append("file", file)
 
-  const response = await fetch(`${API_BASE_URL}/analyses/upload`, {
-    method: 'POST',
+  const response = await fetch(`${GATEWAY_URL}/api/v1/upload`, {
+    method: "POST",
     body: formData,
   })
 
@@ -30,44 +27,18 @@ export async function uploadFile(file: File): Promise<UploadFileResponse> {
 }
 
 /**
- * Get the current status of an analysis
+ * Get the analysis report once processing is complete
  */
-export async function getAnalysisStatus(
+export async function getAnalysisReport(
   analysisId: string
 ): Promise<AnalysisStatus> {
-  const response = await fetch(`${API_BASE_URL}/analyses/${analysisId}/status`)
+  const response = await fetch(`${GATEWAY_URL}/api/v1/report/${analysisId}`)
 
   if (!response.ok) {
-    throw new Error(`Failed to get status: ${response.statusText}`)
+    throw new Error(`Failed to get report: ${response.statusText}`)
   }
 
   return response.json() as Promise<AnalysisStatus>
-}
-
-/**
- * Get all analyses for the current user
- */
-export async function getAllAnalyses(): Promise<AnalysesList> {
-  const response = await fetch(`${API_BASE_URL}/analyses`)
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch analyses: ${response.statusText}`)
-  }
-
-  return response.json() as Promise<AnalysesList>
-}
-
-/**
- * Download the report for a completed analysis
- */
-export async function downloadReport(analysisId: string): Promise<Blob> {
-  const response = await fetch(`${API_BASE_URL}/analyses/${analysisId}/report`)
-
-  if (!response.ok) {
-    throw new Error(`Failed to download report: ${response.statusText}`)
-  }
-
-  return response.blob()
 }
 
 /**
@@ -75,7 +46,7 @@ export async function downloadReport(analysisId: string): Promise<Blob> {
  */
 export function triggerBlobDownload(blob: Blob, fileName: string): void {
   const url = window.URL.createObjectURL(blob)
-  const link = document.createElement('a')
+  const link = document.createElement("a")
   link.href = url
   link.download = fileName
   document.body.appendChild(link)
