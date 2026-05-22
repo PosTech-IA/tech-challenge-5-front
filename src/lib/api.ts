@@ -2,7 +2,7 @@
  * API client for communicating with the backend analysis service
  */
 
-import type { AnalysisStatus, UploadFileResponse } from "@/types/api"
+import type { AnalysisStatus, UploadFileResponse, AnalysesList } from "@/types/api"
 
 const GATEWAY_URL =
   import.meta.env.VITE_API_GATEWAY_URL || "http://localhost:8080"
@@ -39,6 +39,30 @@ export async function getAnalysisReport(
   }
 
   return response.json() as Promise<AnalysisStatus>
+}
+
+/**
+ * List all analyses with optional status filter and pagination
+ */
+export async function listReports(
+  status?: string,
+  limit: number = 10,
+  offset: number = 0
+): Promise<AnalysesList> {
+  const searchParams = new URLSearchParams()
+  searchParams.append("limit", String(limit))
+  searchParams.append("offset", String(offset))
+  if (status) {
+    searchParams.append("status", status)
+  }
+
+  const response = await fetch(`${GATEWAY_URL}/api/v1/reports?${searchParams}`)
+
+  if (!response.ok) {
+    throw new Error(`Failed to list reports: ${response.statusText}`)
+  }
+
+  return response.json() as Promise<AnalysesList>
 }
 
 /**
