@@ -38,6 +38,8 @@ export interface UploadFileResponse {
 }
 
 export interface AnalysesList {
-  analyses: Array<Analysis>
+  items: Array<Analysis>
+  limit: number
+  offset: number
   total: number
 }
