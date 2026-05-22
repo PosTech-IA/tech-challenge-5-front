@@ -35,7 +35,7 @@ export function Component() {
     try {
       setIsLoading(true)
       const data = await listReports(selectedStatus, limit, currentPage * limit)
-      setAnalyses(data.analyses)
+      setAnalyses(data.items)
       setTotal(data.total)
     } catch (error) {
       console.error("Failed to fetch analyses:", error)
