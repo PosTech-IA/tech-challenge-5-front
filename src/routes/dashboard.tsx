@@ -4,8 +4,8 @@ import { createFileRoute } from "@tanstack/react-router"
 import { toast } from "sonner"
 import { Download } from "lucide-react"
 import { useEffect, useState } from "react"
-import type { AnalysisStatusType, Analysis } from "@/types/api"
-import { listReports } from "@/lib/api"
+import type { Analysis, AnalysisStatusType } from "@/types/api"
+import { downloadReportPdf, listReports } from "@/lib/api"
 import {
   Table,
   TableBody,
@@ -23,7 +23,7 @@ export const Route = createFileRoute("/dashboard")({
 })
 
 export function Component() {
-  const [analyses, setAnalyses] = useState<Analysis[]>([])
+  const [analyses, setAnalyses] = useState<Array<Analysis>>([])
   const [isLoading, setIsLoading] = useState(true)
   const [selectedStatus, setSelectedStatus] = useState<string | undefined>()
   const [currentPage, setCurrentPage] = useState(0)
@@ -93,6 +93,16 @@ export function Component() {
     })
   }
 
+  const handleDownload = async (analysisId: string) => {
+    try {
+      await downloadReportPdf(analysisId)
+      toast.success("Report downloaded successfully")
+    } catch (error) {
+      console.error("Failed to download report:", error)
+      toast.error("Failed to download report")
+    }
+  }
+
   const totalPages = Math.ceil(total / limit)
 
   return (
@@ -125,7 +135,7 @@ export function Component() {
         <div className="mt-12 space-y-6">
           <div>
             <h2 className="text-lg font-semibold">Recent Analyses</h2>
-            <div className="mt-4 flex gap-2 mb-4">
+            <div className="mt-4 mb-4 flex gap-2">
               <Button
                 variant={selectedStatus === undefined ? "default" : "outline"}
                 onClick={() => setSelectedStatus(undefined)}
@@ -139,7 +149,9 @@ export function Component() {
                 Received
               </Button>
               <Button
-                variant={selectedStatus === "processing" ? "default" : "outline"}
+                variant={
+                  selectedStatus === "processing" ? "default" : "outline"
+                }
                 onClick={() => setSelectedStatus("processing")}
               >
                 Processing
@@ -168,7 +180,7 @@ export function Component() {
               </div>
             ) : (
               <>
-                <div className="rounded-lg border border-border overflow-hidden">
+                <div className="overflow-hidden rounded-lg border border-border">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -185,23 +197,21 @@ export function Component() {
                             {analysis.filename}
                           </TableCell>
                           <TableCell>
-                            <Badge variant={getStatusVariant(analysis.status as AnalysisStatusType)}>
-                              {getStatusLabel(analysis.status as AnalysisStatusType)}
+                            <Badge variant={getStatusVariant(analysis.status)}>
+                              {getStatusLabel(analysis.status)}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">
                             {formatDate(analysis.created_at)}
                           </TableCell>
                           <TableCell className="text-right">
-                            {(analysis.status as AnalysisStatusType) === "analyzed" && (
+                            {analysis.status === "analyzed" && (
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                onClick={() => {
-                                  toast.success("View report feature coming soon")
-                                }}
+                                onClick={() => handleDownload(analysis.id)}
                               >
-                                <Download className="w-4 h-4" />
+                                <Download className="h-4 w-4" />
                               </Button>
                             )}
                           </TableCell>
@@ -214,13 +224,16 @@ export function Component() {
                 {totalPages > 1 && (
                   <div className="mt-4 flex items-center justify-between">
                     <div className="text-sm text-muted-foreground">
-                      Showing {currentPage * limit + 1} to {Math.min((currentPage + 1) * limit, total)} of {total}
+                      Showing {currentPage * limit + 1} to{" "}
+                      {Math.min((currentPage + 1) * limit, total)} of {total}
                     </div>
                     <div className="flex gap-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+                        onClick={() =>
+                          setCurrentPage(Math.max(0, currentPage - 1))
+                        }
                         disabled={currentPage === 0}
                       >
                         Previous
@@ -228,7 +241,11 @@ export function Component() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
+                        onClick={() =>
+                          setCurrentPage(
+                            Math.min(totalPages - 1, currentPage + 1)
+                          )
+                        }
                         disabled={currentPage === totalPages - 1}
                       >
                         Next

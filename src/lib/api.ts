@@ -2,7 +2,11 @@
  * API client for communicating with the backend analysis service
  */
 
-import type { AnalysisStatus, UploadFileResponse, AnalysesList } from "@/types/api"
+import type {
+  AnalysesList,
+  AnalysisStatus,
+  UploadFileResponse,
+} from "@/types/api"
 
 const GATEWAY_URL =
   import.meta.env.VITE_API_GATEWAY_URL || "http://localhost:8080"
@@ -63,6 +67,20 @@ export async function listReports(
   }
 
   return response.json() as Promise<AnalysesList>
+}
+
+/**
+ * Download a report as PDF
+ */
+export async function downloadReportPdf(analysisId: string): Promise<void> {
+  const response = await fetch(`${GATEWAY_URL}/api/v1/report/${analysisId}/pdf`)
+
+  if (!response.ok) {
+    throw new Error(`Failed to download report: ${response.statusText}`)
+  }
+
+  const blob = await response.blob()
+  triggerBlobDownload(blob, "report.pdf")
 }
 
 /**
